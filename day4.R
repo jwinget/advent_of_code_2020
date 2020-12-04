@@ -116,8 +116,6 @@ validate_passports <- function(passports, required_fields) {
   invalid_passport <- map(passports, ~check_passport(., required_fields)) %>%
     unlist()
   
-  print(invalid_passport)
-  
   return(length(invalid_passport[invalid_passport == 0]))
 }
 
