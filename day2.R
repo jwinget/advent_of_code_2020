@@ -1,12 +1,19 @@
-# Day 2
+Day <- 2
+
+# Load libraries ----------------------------------------------------------
 
 library(here)
+library(glue)
 library(tidyverse)
 
-# Read in the file with spaces as the delimiter
+# Read data ---------------------------------------------------------------
+
 d <- read_delim(here("data", "day_2_input.txt"),
                 delim = " ",
-                col_names = FALSE) %>%
+                col_names = FALSE)
+
+# Data cleaning and calculations ------------------------------------------
+d <- d %>%
   # Set the column names
   rename("letter" = X2,
          "password" = X3) %>%
@@ -18,16 +25,15 @@ d <- read_delim(here("data", "day_2_input.txt"),
          # Add the count of the key letter
          count = str_count(password, letter),
          # Test for validity
-         valid = count >= min & count <= max)
-
-answer1 <- sum(d$valid)
-answer1
-
-## For part 2 we need to check that exactly 1 position contains the letter
-d <- d %>%
+         valid_1 = count >= min & count <= max) %>%
   rowwise() %>%
   mutate(valid_2 = length(intersect(c(min, max), 
                                     gregexpr(letter, password)[[1]])) == 1)
 
+# Question 1 --------------------------------------------------------------
+answer1 <- sum(d$valid_1)
+answer1
+
+# Question 2 --------------------------------------------------------------
 answer2 <- sum(d$valid_2)
 answer2
