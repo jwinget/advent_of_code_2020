@@ -52,5 +52,3 @@ answer1
 # Question 2 --------------------------------------------------------------
 answer2 <- calculate_fuel_recursive(d)
 answer2
-
-#4687217 is too low
