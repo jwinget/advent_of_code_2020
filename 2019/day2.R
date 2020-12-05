@@ -32,7 +32,7 @@ run_opcode <- function(d) {
     mod[eval(mod[i+3] + 1)] <- res
     i <- i + 4
   } else {
-    print("Confused, what do?")
+    print(glue("Stuck at position {i} with value {mod[i]}"))
   }
   }
   
@@ -47,18 +47,21 @@ optimize_opcode <- function(d) {
   
   for(noun in nouns) {
     for(verb in verbs){
-      mod[1] <- noun + 1
-      mod[2] <- verb + 1
+      mod[2] <- noun
+      mod[3] <- verb
       res <- run_opcode(mod)
       
       if(res == solution) {
+        print(glue("Found solution with {noun}, {verb}"))
+        return((100 * noun) + verb)
         break
       } else(
+        # Reset memory
         mod <- d
       )
     }
   }
-  return(100 * noun + verb)
+  return(FALSE)
 }
 
 # Question 1 --------------------------------------------------------------
@@ -69,7 +72,8 @@ d[2] <- 12 ; d[3] <- 2
 
 answer1 <- run_opcode(d)
 answer1
+# 4462686
 
 # Question 2 --------------------------------------------------------------
-optimize_opcode(d)
+answer2 <- optimize_opcode(d)
 answer2
