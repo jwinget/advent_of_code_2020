@@ -76,6 +76,7 @@ brute_force <- function(d) {
     }
     res <- boot_gameboy(df)
     found_fix <- res$term
+
     if (found_fix == TRUE) { break }
     print(glue("Accumulator: {res$acc}"))
     print(glue("Fixed: {found_fix}"))
