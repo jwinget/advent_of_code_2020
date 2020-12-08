@@ -69,7 +69,6 @@ g <- create_graph(relations)
 # Count all the unique bags on the "in" path.
 # Subtract 1 to remove "shiny gold" itself.
 answer1 <- length(unique(names(unlist(all_simple_paths(g, "shiny gold", mode = "in"))))) - 1
-
 answer1
 
 # Question 2 --------------------------------------------------------------
