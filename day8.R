@@ -10,14 +10,14 @@ library(tidyverse)
 
 d <- readLines(here("data", glue("day_{Day}_input.txt")))
 test <- c("nop +0",
-         "acc +1",
-         "jmp +4",
-         "acc +3",
-         "jmp -3",
-         "acc -99",
-         "acc +1",
-         "jmp -4",
-         "acc +6")
+          "acc +1",
+          "jmp +4",
+          "acc +3",
+          "jmp -3",
+          "acc -99",
+          "acc +1",
+          "jmp -4",
+          "acc +6")
 # Functions ---------------------------------------------------------------
 
 echo_inst <- function(d, idx, accumulator) {
@@ -46,10 +46,11 @@ boot_gameboy <- function(d) {
       idx <- idx + 1
     }
   }
-  print(accumulator)
+  return(accumulator)
 }
 
 # Question 1 --------------------------------------------------------------
+
 answer1 <- boot_gameboy(d)
 answer1
 
