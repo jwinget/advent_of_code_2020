@@ -40,20 +40,20 @@ find_invalid <- function(d, pre_length = 25) {
 
 find_contiguous <- function(d, target) {
   res <- FALSE
-  n <- 2
-  while(res == FALSE) {
-    test <- expand.grid(rep(list(d), n))
-    sums <- rowSums(test)
-    print(glue("N: {n}"))
-  if(target %in% sums) {
-    idx <- match(target, sums)
-    vals <- test[idx,]
-    print(glue(paste(vals, collapse = " ")))
-    return(min(vals) + max(vals))
-    break
-  } else {
-    n <- n + 1
+  start <- 1
+  stop <- 2
+  while(start < length(d)){
+  while(stop <= length(d)) {
+    test <- sum(d[start:stop])
+    #print(glue("{start}, {stop}, {test}"))
+    if (test == target) {
+      return(min(d[start:stop]) + max(d[start:stop]))
+    } else if (test > target) {
+      break
+    }
+    stop <- stop + 1
   }
+    start <- start + 1
   }
 }
 
