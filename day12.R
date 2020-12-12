@@ -41,7 +41,6 @@ move_ship <- function(d, ...) {
   
   if ("waypoint" %in% names(args)) {
     waypoint <- args$waypoint
-    #print(waypoint)
   }
   
   
@@ -125,4 +124,3 @@ answer1
 # Question 2 --------------------------------------------------------------
 answer2 <- d %>% move_ship(waypoint = c(10, 1)) %>% calc_manhattan()
 answer2
-# 1139250 is too high
