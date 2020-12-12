@@ -75,6 +75,58 @@ fill_seats <- function(m) {
   return(m)
 }
 
+fill_seats_2 <- function(m) {
+  # Rules:
+  # Similar to fill_seats
+  # But instead depends on first seat "visible"
+  
+  empty_seats <- which(m == FALSE)
+  occupied_seats <- which(m == TRUE)
+  
+  n <- nrow(m)
+  mat.pad <- rbind(NA, cbind(NA, m, NA), NA)
+  ind <- 2:(n + 1) # row/column indices of the "middle"
+  
+  i <- 1
+  
+  neighbors <- list (N = NA, NE = NA, E = NA, SE = NA,
+                 S = NA, SW = NA, W = NA, NW = NA)
+  while(is.na(neighbors$N)[[1]]) {
+   neighbors$N <- as.vector(mat.pad[ind - i, ind    ])
+   i <- i + 1
+  }
+  i <- 1
+  
+  neigh <- rbind(neighbors)
+  print(neigh)
+  
+  #neigh <- rbind(N  = as.vector(mat.pad[ind - 1, ind    ]),
+  #               NE = as.vector(mat.pad[ind - 1, ind + 1]),
+  #               E  = as.vector(mat.pad[ind    , ind + 1]),
+  #               SE = as.vector(mat.pad[ind + 1, ind + 1]),
+  #               S  = as.vector(mat.pad[ind + 1, ind    ]),
+  #               SW = as.vector(mat.pad[ind + 1, ind - 1]),
+  #               W  = as.vector(mat.pad[ind    , ind - 1]),
+  #               NW = as.vector(mat.pad[ind - 1, ind - 1]))
+  
+  # Update empty seats
+  for (es in empty_seats) {
+    adj_occ <- sum(neigh[,es], na.rm = T)
+    if (adj_occ < 1) {
+      m[es] <- TRUE
+    }
+  }
+  
+  # Update occupied seats
+  for (os in occupied_seats) {
+    adj_occ <- sum(neigh[,os], na.rm = T)
+    if (adj_occ >= 5) {
+      m[os] <- FALSE
+    }
+  }
+  return(m)
+}
+
 stabilize_seating <- function(m) {
   stable <- FALSE
   state <- m
