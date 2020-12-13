@@ -47,12 +47,13 @@ win_contest <- function(sched) {
   # etc.
   # (Start time + the cumulative sum of idx) modulo value
   # must equal zero for all buses
+
   time <- 0
   solution <- FALSE
   step <- first(df$value)
   solved <- c(first(df$value))
   d <- filter(df, value != first(df$value))
-  
+
   while(solution == FALSE) {
     d <- d %>%
       rowwise() %>%
