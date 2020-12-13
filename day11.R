@@ -1,5 +1,7 @@
 Day <- 11
 
+# This runs obscenely slowly but it's *my* code, at least
+
 # Load libraries ----------------------------------------------------------
 
 library(here)
@@ -15,141 +17,188 @@ dt <- c("L.LL.LL.LL", "LLLLLLL.LL", "L.L.L..L..", "LLLL.LL.LL",
 
 # Functions ---------------------------------------------------------------
 
-preprocess_data <- function(d) {
-  # Convert the input data to a matrix
-  # FALSE indicates occupancy
-  dm <- unlist(map(d, ~strsplit(., "")[[1]]))
-  dm[dm == "L"] <- FALSE
-  dm[dm == "."] <- NA
+find_neighbors <- function(d, mode) {
+  width <- nchar(d[1])
+  height <- length(d)
   
-  return(matrix(as.logical(dm), ncol = nchar(d[1]), byrow = TRUE))
+  # Set up the data structure
+  df <- tibble(pos = unlist(strsplit(d, "")),
+               neighbors = rep(NA, sum(nchar(d)))) %>%
+    mutate(neighbors = as.list(neighbors),
+           pos = case_when(
+             pos == "L" ~ FALSE,
+             pos == "." ~ NA
+           ))
+  
+  # Find the neighbors of each seat
+  # Store their row indices as a vector in "neighbors"
+  for(i in seq(1:nrow(df))){
+      possible_indices <- list(N = i - width,
+                            NE = i - width + 1,
+                            E = i + 1,
+                            SE = i + width + 1,
+                            S = i + width,
+                            SW = i + width - 1,
+                            W = i - 1,
+                            NW = i - width - 1
+                            )
+      
+      # Deal with left and right edges
+      if (i %% width == 0) {
+        # End of a row
+        possible_indices$E <- NULL
+        possible_indices$NE <- NULL
+        possible_indices$SE <- NULL
+      } else if (i %% width == 1) {
+        # Start of a row
+        possible_indices$W <- NULL
+        possible_indices$NW <- NULL
+        possible_indices$SW <- NULL
+      }
+      
+      # Deal with top and bottom edges
+      if (i <= width) {
+        # Top row
+        possible_indices$N <- NULL
+        possible_indices$NE <- NULL
+        possible_indices$NW <- NULL
+      } else if (i >= width * height) {
+        # Bottom row
+        possible_indices$S <- NULL
+        possible_indices$SE <- NULL
+        possible_indices$SW <- NULL
+      }
+      
+      if (mode == "visible") {
+        for (pi in names(possible_indices)) {
+        j <- 2
+        while (is.na(df[possible_indices[[pi]],]$pos)) {
+          if (pi == "N") {
+            ti <- i - width*j
+            if (ti > 0 & !is.na(df[ti,]$pos)) {
+              possible_indices[[pi]] <- ti
+              break
+            } else if (is.na(df[ti,]$pos)) {
+              j <- j + 1
+            } else if (ti <= 0) {
+              break
+            }
+          } else if (pi == "NE") {
+            ti = i - width*j + 1*j
+            if (ti > 0 & !is.na(df[ti,]$pos)) {
+              possible_indices[[pi]] <- ti
+              break
+            } else if (is.na(df[ti,]$pos)) {
+              j <- j + 1
+            } else if (ti <= 0) {
+              break
+            }
+          } else if (pi == "E") {
+            while(j <= width - i) {
+            ti = i + j
+            if (!is.na(df[ti,]$pos)) {
+              possible_indices[[pi]] <- ti
+              break
+            } else { j <- j + 1}
+            }
+          } else if (pi == "SE") {
+            ti = i + width*j + 1*j
+            if (ti < width * height & !is.na(df[ti,]$pos)) {
+              possible_indices[[pi]] <- ti
+              break
+            } else if (is.na(df[ti,]$pos)) {
+              j <- j + 1
+            } else if (ti >= width * height) {
+              break
+            }
+          } else if (pi == "S") {
+            ti = i + width*j
+            if (ti < width * height & !is.na(df[ti,]$pos)) {
+              possible_indices[[pi]] <- ti
+              break
+            } else if (is.na(df[ti,]$pos)) {
+              j <- j + 1
+            } else if (ti >= width * height) {
+              break
+            }
+            
+          } else if (pi == "SW") {
+            ti = i + width*j - 1*j
+            if (ti < width * height & !is.na(df[ti,]$pos)) {
+              possible_indices[[pi]] <- ti
+              break
+            } else if (is.na(df[ti,]$pos)) {
+              j <- j + 1
+            } else if (ti >= width * height) {
+              break
+            }
+          } else if (pi == "W") {
+            ti = i - j
+            if (!is.na(df[ti,]$pos)) {
+              possible_indices[[pi]] <- ti
+              break
+            } else { j <- j + 1}
+          }
+          else if (pi == "NW") {
+            ti = i - width*j - 1*j
+            if (ti > 0 & !is.na(df[ti,]$pos)) {
+              possible_indices[[pi]] <- ti
+              break
+            } else if (is.na(df[ti,]$pos)) {
+              j <- j + 1
+            } else if (ti <= 0) {
+              break
+            }
+          }
+        }
+        }
+      }
+      
+      
+  }
+  
+  
+  return(df)
 }
 
-fill_seats <- function(m) {
-  # Rules:
-  # If a seat is empty 
-  # and there are no occupied seats adjacent to it, 
-  # the seat becomes occupied.
-  # If a seat is occupied
-  # and four or more seats adjacent to it are also occupied, 
-  # the seat becomes empty.
-  # Otherwise, the seat's state does not change.
-  # Adjacency: one of the eight positions immediately 
-  # up, down, left, right, or diagonal from the seat
-  
-  # After preprocessing:
-  # FALSE = empty seat
-  # TRUE = filled seat
-  # NA = floor
-  
-  empty_seats <- which(m == FALSE)
-  occupied_seats <- which(m == TRUE)
-  
-  n <- nrow(m)
-  mat.pad <- rbind(NA, cbind(NA, m, NA), NA)
-  ind <- 2:(n + 1) # row/column indices of the "middle"
-  neigh <- rbind(N  = as.vector(mat.pad[ind - 1, ind    ]),
-                 NE = as.vector(mat.pad[ind - 1, ind + 1]),
-                 E  = as.vector(mat.pad[ind    , ind + 1]),
-                 SE = as.vector(mat.pad[ind + 1, ind + 1]),
-                 S  = as.vector(mat.pad[ind + 1, ind    ]),
-                 SW = as.vector(mat.pad[ind + 1, ind - 1]),
-                 W  = as.vector(mat.pad[ind    , ind - 1]),
-                 NW = as.vector(mat.pad[ind - 1, ind - 1]))
-  
-  # Update empty seats
-  for (es in empty_seats) {
-    adj_occ <- sum(neigh[,es], na.rm = T)
-    if (adj_occ < 1) {
-      m[es] <- TRUE
-    }
-  }
-  
-  # Update occupied seats
-  for (os in occupied_seats) {
-    adj_occ <- sum(neigh[,os], na.rm = T)
-    if (adj_occ >= 4) {
-      m[os] <- FALSE
-    }
-  }
-  return(m)
-}
-
-fill_seats_2 <- function(m) {
-  # Rules:
-  # Similar to fill_seats
-  # But instead depends on first seat "visible"
-  
-  empty_seats <- which(m == FALSE)
-  occupied_seats <- which(m == TRUE)
-  
-  n <- nrow(m)
-  mat.pad <- rbind(NA, cbind(NA, m, NA), NA)
-  ind <- 2:(n + 1) # row/column indices of the "middle"
-  
-  i <- 1
-  
-  neighbors <- list (N = NA, NE = NA, E = NA, SE = NA,
-                 S = NA, SW = NA, W = NA, NW = NA)
-  while(is.na(neighbors$N)[[1]]) {
-   neighbors$N <- as.vector(mat.pad[ind - i, ind    ])
-   i <- i + 1
-  }
-  i <- 1
-  
-  neigh <- rbind(neighbors)
-  print(neigh)
-  
-  #neigh <- rbind(N  = as.vector(mat.pad[ind - 1, ind    ]),
-  #               NE = as.vector(mat.pad[ind - 1, ind + 1]),
-  #               E  = as.vector(mat.pad[ind    , ind + 1]),
-  #               SE = as.vector(mat.pad[ind + 1, ind + 1]),
-  #               S  = as.vector(mat.pad[ind + 1, ind    ]),
-  #               SW = as.vector(mat.pad[ind + 1, ind - 1]),
-  #               W  = as.vector(mat.pad[ind    , ind - 1]),
-  #               NW = as.vector(mat.pad[ind - 1, ind - 1]))
-  
-  # Update empty seats
-  for (es in empty_seats) {
-    adj_occ <- sum(neigh[,es], na.rm = T)
-    if (adj_occ < 1) {
-      m[es] <- TRUE
-    }
-  }
-  
-  # Update occupied seats
-  for (os in occupied_seats) {
-    adj_occ <- sum(neigh[,os], na.rm = T)
-    if (adj_occ >= 5) {
-      m[os] <- FALSE
-    }
-  }
-  return(m)
-}
-
-stabilize_seating <- function(m) {
+update_seats <- function(nb, max_occupied) {
+  out <- nb
   stable <- FALSE
-  state <- m
-  while (stable == FALSE) {
-    new_state <- fill_seats(state)
-    if (all.equal(state, new_state) == TRUE) {
-      stable <- TRUE
-      occupied_seats <- sum(as.vector(new_state), na.rm = T)
-      return(occupied_seats)
+  
+  cache <- out
+  while(stable == FALSE) {
+  for (i in seq(1:nrow(cache))) {
+    if(!is.na(cache[i,]$pos)) {
+      occ <- sum(cache[cache[i,]$neighbors[[1]],]$pos, na.rm = T)
+      if(cache[i,]$pos == TRUE) {
+        # This seat is taken. See if the person wants to leave
+        if (occ >= max_occupied) {
+          out[i,]$pos <- FALSE
+        } else {out[i,]$pos <- TRUE}
+      } else if (cache[i,]$pos == FALSE) {
+        # Available seat. Fill if no adjacent seats
+        if(occ == 0) {
+          out[i,]$pos <- TRUE
+        } else {out[i,]$pos <- FALSE}
+      }
+    }
+  }
+    if (all.equal(out$pos, cache$pos) == TRUE) {
+      stable == TRUE
+      return(sum(out$pos, na.rm = T))
     } else {
-      state <- new_state
-      #print(new_state)
-      #readline("Not yet stable. Press [Enter] to continue...")
+      print(sum(out$pos, na.rm = T))
+      cache <- out
     }
   }
 }
-
 
 # Question 1 --------------------------------------------------------------
-dm <- preprocess_data(d)
-answer1 <- stabilize_seating(cbind(dm, NA)) # Pad input to make it square
+nb <- find_neighbors(d, mode = "adjacent")
+answer1 <- update_seats(nb, 4)
 answer1
 
 # Question 2 --------------------------------------------------------------
-
+nb <- find_neighbors(d, mode = "visible")
+answer2 <- update_seats(nb, 5)
 answer2
